@@ -1,0 +1,118 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title="Mel's Webpage">
+</head>
+<body>
+  <h1>Welcome to my page!</h1>
+  <textarea id="input-text"> </textarea>
+  <button onClick="respondAndSave()">Submit</button>
+  <div id="output-text"></div>
+  <script>
+    history = localStorage.getItem("chatbot-sessionHistorys");
+    sessionHistoryIndex = 0
+    if (history == null) {
+      localStorage.setItem("chatbot-sessionHistorys", "[[]]");
+      history = []
+    }
+    sessionHistoryIndex = history.length;
+    setInitialState();
+
+    // onClick save text, clear text, gen response, display text and response
+    // future: browse old conversations, invalidate button if no text
+
+    function setInitialState() {
+      displayChatBot("Tell me about the shit.");
+      history[sessionHistoryIndex] = ["Tell me about the shit."];
+      sessionHistoryState = "more";
+    }
+
+    function displayUserInput(text) {
+      var prev = document.getElementById("output-text").innerHTML;
+      document.getElementById("output-text").innerHTML = "<p class=\"user\">" + text.replace("\n", "<br />") + "</p>" + prev;
+    }
+
+    function displayChatBot(text) {
+      var prev = document.getElementById("output-text").innerHTML;
+      document.getElementById("output-text").innerHTML = "<p class=\"chatbot\">" + text.replace("\n", "<br />") + "</p>" + prev;
+    }
+
+    function respondAndSave() {
+      var text = document.getElementById("input-text").value;
+      if (text !== "") {
+        document.getElementById("input-text").value = "";
+        history[sessionHistoryIndex].append(text);
+        displayUserInput(text)
+        var reply = getResponse(sessionHistoryState, text);
+        history[sessionHistoryIndex].append(reply)
+        if (sessionHistoryState === "ignore") {
+          sessionHistoryIndex = sessionHistoryIndex + 1  ;
+          setInitialState();
+        }
+        displayChatBot(reply);
+        localStorage.setItem("chatbot-sessionHistorys", JSON.stringify(history));
+      }
+    }
+    function getRandomElement(arr) {
+      var idx = Math.floor(Math.random() * arr.length);
+      return arr[idx];
+    }
+
+    function getResponse(state, input) {
+      switch (state) {
+        case "begin":
+          var output = "Tell me about the shit.";
+          var nextState = "more";
+          break;
+        case "more":
+          var output = "Tell me more?";
+          var nextState = "why";
+          break;
+        case "why":
+          var output = "Why do you think that happened?";
+          var nextState = "next";
+          break;
+        case "next":
+          var output = "What happened next?";
+          var nextState = "assess";
+          break;
+        case "assess":
+          var output = "What would a better outcome have been?";
+          var nextState = "end";
+          break;
+        case "end": 
+          var nextState = "ignore";
+          var output = "Well, that's the end of our sessionHistory. Thank you for sharing that with me; I hope it was helpful.";
+          break;
+        default:
+          var nextState = "more"
+          var output = "Not sure I understand. Tell me more?"
+      }
+      var flags = findflags(input)
+      if (input.length <= 10) {
+        nextState = state
+        output = getRandomElement(["Tell me more?", "Can you expand on that?", "What could be making this hard to talk about?"])
+        
+      } else {
+        if (flags.length / input.split(" ").length > 0.05) {
+          output = "I notice some likely distorted-thinking in your response. What do you mean by \"" + getRandomElement(flags) + "\"?";
+        }
+      }
+      sessionHistoryState = nextState;
+      return output;
+    }
+
+    function findflags(text) {
+      var flags = text.search(/(should(n'?t)?('?ve| have)?|have to|had to|must( be)?|no choice|made me|making me)/i);
+      flags.concat(text.search(/((not )?fair(ness)?|can'?t help( it)?|(my |their |his |her )fault)/i));
+      flags.concat(text.search(/(jerk|loser|fail(ure|ed)?|idiot|worthless|dumb|stupid)/i));
+      flags.concat(text.search(/(all|every|always|never|)/i));
+      return flags;
+    }
+  </script>
+</body>
+</html>
+<!-- css style the conversation-->
+<style>
+</style>
